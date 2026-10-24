@@ -7829,6 +7829,8 @@ jobs:
             LinearLayout r = vbox();
             r.addView(topBar(t("صفحه خانگی", "Home Page"), fg));
             final boolean on = sp.getBoolean("hfOn", false);
+
+            r.addView(sectionTitle(t("کادر", "Frame"), fg));
             r.addView(row(0xFF7E57C2, "▣", t("کادر صفحه خانگی", "Home page frame"),
               t("کادری مثل پوشه فراگیر پشت آیکون‌های صفحه", "A frame like the immersive folder behind the icons"),
               on ? 3 : 2, fg, v -> {
@@ -7838,17 +7840,20 @@ jobs:
             r.addView(row(0xFFFF7043, "🖼", t("پس‌زمینه کادر", "Frame background"),
               t("رنگ، شفافیت و عکس کادر", "Color, transparency and picture of the frame"), 0, fg,
               v -> { page = HFBG; show(); }));
+            r.addView(toggleRow(0xFF7E57C2, "▣", t("افکت کادر", "Frame effect"),
+              t("افکت صفحه روی کل کادر صفحه اصلی اجرا می‌شود و آیکون‌ها با کادر جابجا می‌شوند (نیاز به صفحات افقی و کادر روشن)",
+                "The page effect runs on the whole home frame and the icons move with it (needs paged mode and frame on)"),
+              "hfFx", false, fg));
+
+            r.addView(sectionTitle(t("صفحات و افکت", "Pages and effects"), fg));
             // one page that scrolls down (on) or several pages that turn left and right (off)
             r.addView(toggleRowThen(0xFF26A69A, "↔", t("صفحات افقی", "Horizontal pages"),
               t("روشن: یک صفحه که به پایین اسکرول می‌شود. خاموش: چند صفحه که با کشیدن به چپ و راست می‌چرخند",
                 "On: one page that scrolls down. Off: several pages that turn left and right"),
               "hpScroll", true, fg, () -> { onPagesToggled(); show(); }));
-            // icon settings open right here, in lighter glass boxes
-            r.addView(toggleRow(0xFF7E57C2, "▣", t("افکت کادر", "Frame effect"),
-              t("افکت صفحه روی کل کادر صفحه اصلی اجرا می‌شود و آیکون‌ها با کادر جابجا می‌شوند (نیاز به صفحات افقی و کادر روشن)",
-                "The page effect runs on the whole home frame and the icons move with it (needs paged mode and frame on)"),
-              "hfFx", false, fg));
             if (pagedMode()) r.addView(transAnimGroup(fg));
+
+            r.addView(sectionTitle(t("آیکون", "Icons"), fg));
             r.addView(accordionGroupFaded(0xFFAB47BC, "🧩", t("آیکون", "Icon"), fg, 0.6f, () -> iconItems(fg)));
             return wrapScroll(r);
            }
@@ -9397,8 +9402,13 @@ jobs:
             r.addView(topBar(t("داک", "Dock"), fg));
 
             boolean on1 = sp.getBoolean("dockOn1", true);
+            r.addView(sectionTitle(t("نمایش", "Show"), fg));
             r.addView(row(0xFF8E24AA, "👁", t("نمایش", "Show"), null, on1 ? 3 : 2, fg,
               v -> { sp.edit().putBoolean("dockOn1", !on1).apply(); show(); }));
+            r.addView(row(0xFF5C6BC0, "🎨", t("پس‌زمینه داک", "Dock background"), null, 0, fg,
+              v -> { page = DOCKBG; show(); }));
+
+            r.addView(sectionTitle(t("آیکون", "Icons"), fg));
             // icon: name on/off, icon size, icon name size (glass boxes, a little fainter)
             r.addView(accordionGroupFaded(0xFF00CCD6, "📱", t("آیکون", "Icon"), fg, 0.6f, () -> new View[]{
               toggleRow(0xFF7E57C2, "🏷", t("اسم آیکون", "Icon name"),
@@ -9406,8 +9416,8 @@ jobs:
                 "hideDockNames", false, fg),
               accordionRow(0xFF00CCD6, "📱", t("سایز آیکون", "Icon size"), "dockI1", 24, 64, 52, " dp", fg, null),
               accordionRow(0xFFFFB300, "🔤", t("سایز اسم آیکون", "Icon name size"), "dockTs1", 6, 20, 10, " sp", fg, null)}));
-            r.addView(row(0xFF5C6BC0, "🎨", t("پس‌زمینه داک", "Dock background"), null, 0, fg,
-              v -> { page = DOCKBG; show(); }));
+
+            r.addView(sectionTitle(t("چیدمان", "Layout"), fg));
             r.addView(accordionRow(0xFF2196F3, "🔢", t("تعداد اپلیکیشن", "Apps count"), "dockCount1", 4, 10, 4, "", fg, null));
             r.addView(accordionRow(0xFF4CAF50, "📄", t("تعداد صفحه", "Pages count"), "dockPages1", 1, 5, 1, "", fg, null));
             // dock position: positive = up (mm), 0 = now, -1 = lowest (touching the navigation keys)
