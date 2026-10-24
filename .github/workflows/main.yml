@@ -7984,20 +7984,15 @@ jobs:
              }
             };
 
-            // everything about what the bubble does and its list lives on its own page
-            r.addView(row(0xFF00897B, "💬", t("عملکرد", "Actions"),
-              t("لانچر، عملکردها و ظاهر لیست حباب", "Launcher, actions and the look of the bubble list"),
-              0, fg, v -> {
-             page = BUB;
-             show();
-            }));
+            r.addView(sectionTitle(t("ظاهر", "Look"), fg));
             r.addView(accordionRow(0xFF2196F3, "📐", t("سایز حباب", "Bubble Size"), "mock_size", 30, 100, 56, " dp", fg, updateMock));
             r.addView(accordionRow(0xFF4CAF50, "💧", t("شفافیت حباب", "Bubble Opacity"), "mock_alpha", 20, 100, 90, "%", fg, updateMock));
             r.addView(accordionRow(0xFFFFB300, "⏱", t("سرعت", "Speed"), "mock_speed", 50, 2000, 2000, " ms", fg, updateMock));
             r.addView(accordionRow(0xFF5C6BC0, "🙈", t("نهان", "Hide"), "mock_hide", 30, 70, 68, "%", fg, updateMock));
+
+            r.addView(sectionTitle(t("محل و نمایش", "Position and display"), fg));
             r.addView(accordionRow(0xFF00ACC1, "↔", t("محل حباب (افقی)", "Bubble position (horizontal)"), "mock_px", 0, 100, 70, "%", fg, updateMock));
             r.addView(accordionRow(0xFF7E57C2, "↕", t("محل حباب (عمودی)", "Bubble position (vertical)"), "mock_py", 0, 100, 40, "%", fg, updateMock));
-
             boolean over = sp.getBoolean("mock_over", true);
             r.addView(row(0xFF9C27B0, "🔝", t("نمایش روی تمام برنامه‌ها", "Overlay Over Apps"),
               t("خاموش: حباب فقط روی صفحه لانچر دیده می‌شود", "Off: bubble is visible only on the launcher"),
@@ -8007,6 +8002,13 @@ jobs:
              show();
             }));
 
+            r.addView(sectionTitle(t("عملکرد", "Actions"), fg));
+            r.addView(row(0xFF00897B, "💬", t("عملکرد", "Actions"),
+              t("لانچر، عملکردها و ظاهر لیست حباب", "Launcher, actions and the look of the bubble list"),
+              0, fg, v -> {
+             page = BUB;
+             show();
+            }));
             return wrapScroll(r);
            }
 
