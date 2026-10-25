@@ -1851,7 +1851,7 @@ jobs:
             private String curKey = null;
             private int curCX, curCY, lastRowLeft, lastRowRight, lastRowBottom;
             private String pendingFid = null;
-            private int mmPx(int mm) { return (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_MM, mm, getResources().getDisplayMetrics()); }
+            private int umPx(int um) { return (int) android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_MM, um / 1000f, getResources().getDisplayMetrics()); }
             private boolean noOpenFx = false;
             private boolean swapFast = false;
             private boolean swipeBase = false;
@@ -1962,8 +1962,8 @@ jobs:
            listRoot.getLocationOnScreen(pl);
            forcedY = lastTouchRawY - (pl[1] - listParams.y);
            if (fidNow != null) {
-            forcedX = forcedX + mmPx(sp.getInt("colw_" + fidNow, 0));
-            forcedY = forcedY + mmPx(sp.getInt("colh_" + fidNow, 0));
+            forcedX = forcedX + umPx(sp.getInt("colwu_" + fidNow, 0));
+            forcedY = forcedY + umPx(sp.getInt("colhu_" + fidNow, 0));
            }
            Box pb = new Box(listRoot, listCard, listParams, curKey);
            pb.cx = curCX; pb.cy = curCY;
@@ -7954,23 +7954,40 @@ jobs:
            return changed;
           }
 
+          void leverSelected(final int idx, final boolean height) {
+           if (page == FEDIT) {
+            fEdit(l -> {
+             if (idx < l.size() && BubbleActs.isFolder(l.get(idx)) && (l.get(idx).fid == null || l.get(idx).fid.isEmpty()))
+              l.get(idx).fid = BubbleActs.newFid();
+            });
+            List<BubbleActs.Act> ks = fKids();
+            if (idx < ks.size() && BubbleActs.isFolder(ks.get(idx))) colLeverDialog(ks.get(idx), height);
+           } else {
+            BubbleActs.Act[] acts = BubbleActs.load(sp);
+            if (idx < acts.length && BubbleActs.isFolder(acts[idx])) {
+             if (acts[idx].fid == null || acts[idx].fid.isEmpty()) { acts[idx].fid = BubbleActs.newFid(); BubbleActs.save(sp, acts); }
+             colLeverDialog(acts[idx], height);
+            }
+           }
+          }
+
           void colLeverDialog(final BubbleActs.Act f, final boolean height) {
-           final String key = (height ? "colh_" : "colw_") + f.fid;
+           final String key = (height ? "colhu_" : "colwu_") + f.fid;
            LinearLayout box = new LinearLayout(this);
            box.setOrientation(LinearLayout.VERTICAL);
            box.setPadding(dp(20), dp(12), dp(20), dp(8));
            final TextView val = new TextView(this);
            val.setTextSize(16);
-           val.setText(sp.getInt(key, 0) + " mm");
+           val.setText(sp.getInt(key, 0) + " µm");
            box.addView(val);
            SeekBar sb = new SeekBar(this);
-           sb.setMax(400);
-           sb.setProgress(sp.getInt(key, 0) + 200);
+           sb.setMax(40000);
+           sb.setProgress(sp.getInt(key, 0) + 20000);
            sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onProgressChanged(SeekBar bar, int prog, boolean fromUser) {
-             int v = prog - 200;
+             int v = prog - 20000;
              sp.edit().putInt(key, v).apply();
-             val.setText(v + " mm");
+             val.setText(v + " µm");
             }
             public void onStartTrackingTouch(SeekBar bar) { }
             public void onStopTrackingTouch(SeekBar bar) { }
@@ -8372,7 +8389,7 @@ jobs:
            }
 
            // the bar on top of a list while items are selected: cancel, count, delete
-           View selBar(final int fg, final Runnable onDelete) {
+           View selBar(final int fg, final Runnable onDelete, final boolean folderSel, final Runnable onHeight, final Runnable onWidth) {
             LinearLayout b = new LinearLayout(this);
             b.setGravity(Gravity.CENTER_VERTICAL);
             b.setPadding(dp(12), dp(6), dp(8), dp(6));
@@ -8389,6 +8406,10 @@ jobs:
             n.setTextColor(fg);
             n.setTextSize(14);
             b.addView(n, new LinearLayout.LayoutParams(0, -2, 1));
+            if (folderSel) {
+             b.addView(btn(t("ارتفاع", "Height"), fg, v -> onHeight.run()));
+             b.addView(btn(t("عرض", "Width"), fg, v -> onWidth.run()));
+            }
             b.addView(btn(t("حذف", "Delete") + " (" + selIdx.size() + ")", 0xFFE53935, v -> onDelete.run()));
             return b;
            }
@@ -8436,7 +8457,11 @@ jobs:
             hint.setAlpha(0.65f);
             hint.setPadding(dp(4), dp(10), dp(4), 0);
             r.addView(hint);
-            if (selMode) r.addView(selBar(fg, () -> selDeleteSlots()));
+            if (selMode && !selIdx.isEmpty()) {
+             final int fi = selIdx.iterator().next();
+             r.addView(selBar(fg, () -> selDeleteSlots(), selIdx.size() == 1 && BubbleActs.isFolder(BubbleActs.load(sp)[fi]),
+               () -> leverSelected(fi, true), () -> leverSelected(fi, false)));
+            }
             final float oldFade = boxFade;
             boxFade = 0.6f; // the slots are secondary (fainter) boxes
             final BubbleActs.Act[] acts = BubbleActs.load(sp);
@@ -8748,7 +8773,12 @@ jobs:
             r.addView(pageHint(fg, t("برای جابه‌جایی، هر مورد را یک ثانیه نگه دارید و بکشید. با + برنامه یا پوشه جدید اضافه کنید (حداکثر ۳۰ مورد). پوشه‌ها را هم می‌توانید باز کنید و داخلشان مورد بگذارید.",
               "To move an item, hold it for one second and drag. Use + to add apps or folders (up to 30). Folders can be opened and filled too.")));
             List<BubbleActs.Act> kids = fKids();
-            if (selMode) r.addView(selBar(fg, () -> selDeleteKids()));
+            if (selMode && !selIdx.isEmpty()) {
+             final int fi = selIdx.iterator().next();
+             List<BubbleActs.Act> fks = fKids();
+             r.addView(selBar(fg, () -> selDeleteKids(), selIdx.size() == 1 && fi < fks.size() && BubbleActs.isFolder(fks.get(fi)),
+               () -> leverSelected(fi, true), () -> leverSelected(fi, false)));
+            }
             final float oldFade = boxFade;
             boxFade = 0.6f;
             final List<View> rows = new ArrayList<>();
