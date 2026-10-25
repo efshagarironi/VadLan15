@@ -1746,7 +1746,12 @@ jobs:
             final int next = owner + 1;
             if (next <= top) {
              String nk = next < top ? sideBoxes.get(next).key : curKey;
-             if (fk.equals(nk)) { while (sideBoxes.size() >= next) closeTopSideAnim(); }
+             if (fk.equals(nk)) { while (sideBoxes.size() >= next) closeTopSideAnim(); return; }
+             // another folder of the same column: the open one goes and the new one comes, quickly
+             swapFast = true;
+             while (sideBoxes.size() >= next) closeTopSideAnim();
+             openSideBox(kidItems(BubbleActs.kids(k), null, next), fk);
+             swapFast = false;
              return;
             }
             openSideBox(kidItems(BubbleActs.kids(k), null, next), fk);
@@ -1822,6 +1827,7 @@ jobs:
             private String curKey = null;
             private int curCX, curCY, lastRowLeft, lastRowRight, lastRowBottom;
             private boolean noOpenFx = false;
+            private boolean swapFast = false;
             private int listTextColor = 0xFFFFFFFF;
             private int lastTouchRawY = 0;
 
@@ -1998,6 +2004,7 @@ jobs:
             final FrameLayout r = listRoot;
             final int fx = noOpenFx ? 0 : (slideOpen ? 2 : sp.getInt("bub_fx", 6));
             if (r == null || fx == 0) return;
+            if (fx == 2 || fx == 4 || fx == 7) { final int[] bp = bubblePivot(); fxAnim(r, listParams, true, bp[0], bp[1], Integer.MIN_VALUE, fx, null); return; }
             final long ms = Math.max(100, Math.min(1500, sp.getInt("bub_fxms", 300)));
             final boolean right = sp.getInt("mock_px", 70) > 50;
             r.post(() -> {
@@ -2063,7 +2070,7 @@ jobs:
 
             // the chosen box effect (the same for opening and closing); (px,py) = the screen point the box grows from / shrinks to
             private void fxAnim(final FrameLayout r, final WindowManager.LayoutParams p, final boolean open, final int px, final int py, final int folderTop, final int fx, final Runnable end) {
-             final long ms = Math.max(100, Math.min(1500, sp.getInt("bub_fxms", 300)));
+             final long ms = swapFast ? 130 : Math.max(100, Math.min(1500, sp.getInt("bub_fxms", 300)));
              final int w = Math.max(1, p.width), h = Math.max(1, p.height);
              final int ex = p.x, ey = p.y;
              final boolean folder = folderTop != Integer.MIN_VALUE;
@@ -8026,7 +8033,7 @@ jobs:
 
            View folderFxGroup(final int fg) {
             final int cur = sp.getInt("bub_fxf", 0);
-            return accordionGroupFaded(0xFF26A69A, "🗂", t("افکت های کادر پوشه", "Folder box effects"), fg, 0.6f, () -> {
+            return accordionGroupFaded(0xFF26A69A, "🗂", t("افکت کادر پوشه‌ها", "Folder boxes effect"), fg, 0.6f, () -> {
              View[] its = new View[FXF_IDS.length];
              for (int i = 0; i < its.length; i++) {
               final int k = i;
@@ -8116,10 +8123,10 @@ jobs:
              final int fx = sp.getInt("bub_fx", 6);
              final String[] fxNames = {
                t("بدون افکت", "No effect"), t("قطره‌ای (کش‌دار)", "Drop (stretchy)"), t("محو شدن", "Fade"),
-               t("بزرگ شدن از حباب", "Grow from the bubble"),
-               t("کشویی از بالا", "Slide from the top")};
-             final int[] fxIds = {0, 6, 1, 3, 5};
-             final int[] fxDots = {0xFF9E9E9E, 0xFF29B6F6, 0xFF42A5F5, 0xFFFF7043, 0xFF66BB6A};
+               t("کشویی", "Slide from the side"), t("بزرگ شدن از حباب", "Grow from the bubble"),
+               t("کرکره‌ای", "Shutter"), t("کشویی از بالا", "Slide from the top"), t("کش افقی", "Horizontal stretch")};
+             final int[] fxIds = {0, 6, 1, 2, 3, 4, 5, 7};
+             final int[] fxDots = {0xFF9E9E9E, 0xFF29B6F6, 0xFF42A5F5, 0xFF26A69A, 0xFFFF7043, 0xFF8D6E63, 0xFF66BB6A, 0xFFAB47BC};
              r.addView(accordionGroupFaded(0xFF26A69A, "🎞", t("افکت کادر اصلی", "Main box effect"), fg, 0.6f, () -> {
               View[] its = new View[fxNames.length];
               for (int i = 0; i < fxNames.length; i++) {
@@ -8959,21 +8966,24 @@ jobs:
 
            // step 1: which app
            void actPickApp(final int slot) {
-            PackageManager pm = getPackageManager();
-            Intent q = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
-            Set<String> seen = new HashSet<>();
-            final List<String[]> l = new ArrayList<>();
-            for (ResolveInfo ri : pm.queryIntentActivities(q, 0)) {
-             String p = ri.activityInfo.packageName;
-             if (p.equals(getPackageName()) || !seen.add(p)) continue;
-             l.add(new String[]{ri.loadLabel(pm).toString(), p});
-            }
-            Collections.sort(l, (x, y) -> x[0].compareToIgnoreCase(y[0]));
-            CharSequence[] names = new CharSequence[l.size()];
-            for (int i = 0; i < names.length; i++) names[i] = l.get(i)[0];
-            new AlertDialog.Builder(this).setTitle(t("انتخاب برنامه", "Choose app"))
-              .setItems(names, (d, w) -> actAskName(slot, l.get(w)[1], l.get(w)[0], l.get(w)[0], false))
-              .setNegativeButton(t("لغو", "Cancel"), null).show();
+            multiAppPicker(pkgs -> chooseWin(win -> {
+             BubbleActs.Act[] acts = BubbleActs.load(sp);
+             List<Integer> empties = new ArrayList<>();
+             for (int k = 0; k < acts.length; k++) { int i = (slot + k) % acts.length; if (acts[i] == null) empties.add(i); }
+             int e = 0;
+             for (String pkg : pkgs) {
+              if (e >= empties.size()) break;
+              BubbleActs.Act a = new BubbleActs.Act();
+              a.pkg = pkg;
+              a.type = "app";
+              a.id = win;
+              a.label = "popup".equals(win) ? t("باز شدن در پاپ آپ", "Open in popup") : t("باز شدن کامل", "Open full");
+              a.ts = System.currentTimeMillis();
+              acts[empties.get(e++)] = a;
+             }
+             BubbleActs.save(sp, acts);
+             show();
+            }));
            }
 
            // step 2: the name this action gets in the bubble list
